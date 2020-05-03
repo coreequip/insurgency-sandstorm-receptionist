@@ -33,9 +33,9 @@ templateFarewell    = Player @ just left.
 # rules file
 rulesFile           = rules.txt
 # delay until first rule is printed in seconds
-tellFirstRuleDelay = 30
+tellFirstRuleDelay  = 30
 # delay between every rule in seconds
-tellNextRulesDelay = 10
+tellNextRulesDelay  = 10
 ```
 Besides the `host` and the `rconPassword` all parameter are optional. The default values can be found in the example configuration.
 
