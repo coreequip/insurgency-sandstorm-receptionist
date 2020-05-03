@@ -51,4 +51,4 @@ In our tests it was not possible to connect to the RCON of a Insurgency Sandstor
 
 ## License
 
-ISR is licensed under the [MIT license](blob/master/LICENSE).
+ISR is licensed under the [MIT license](LICENSE).
