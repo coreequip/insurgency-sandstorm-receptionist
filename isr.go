@@ -300,7 +300,9 @@ func readPlayers() (map[string]time.Duration, error) {
 	)
 
 	A2sPlayer := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0x55, 0xFF, 0xFF, 0xFF, 0xFF}
-	conn, err := net.DialTimeout("udp", conf.Host+":"+strconv.Itoa(conf.QueryPort), time.Duration(connectTimeout)*time.Second)
+	conn, err := net.DialTimeout("udp",
+		fmt.Sprintf("%s:%d", conf.Host, conf.QueryPort),
+		time.Duration(connectTimeout)*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -369,8 +371,9 @@ func nextTime(delay int) time.Time {
 }
 
 func rconSay(msg string) {
-	rconHost := conf.Host + ":" + strconv.Itoa(conf.RconPort)
-	conn, err := net.DialTimeout("tcp", rconHost, time.Duration(connectTimeout)*time.Second)
+	conn, err := net.DialTimeout("tcp",
+		fmt.Sprintf("%s:%d", conf.Host, conf.RconPort),
+		time.Duration(connectTimeout)*time.Second)
 	if err != nil {
 		return
 	}
