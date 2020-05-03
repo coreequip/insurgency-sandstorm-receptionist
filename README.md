@@ -1,6 +1,6 @@
 # Insurgency Sandstorm Receptionist
 
-The ISR is a application for your Insurgency Sandstorm server. It checks every 5 seconds the online players and tells changes through the RCON „say“ console command.
+The ISR is a application for your [Insurgency Sandstorm](http://newworldinteractive.com/#games) server. It checks every 5 seconds the online players and tells changes through the RCON „say“ console command.
 
 ## Features
 
