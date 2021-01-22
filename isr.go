@@ -18,43 +18,58 @@ import (
 
 const (
 	connectTimeout = 3
-	version        = "0.1"
+	version        = "0.2"
 )
+
+type ServerInfo struct {
+	name       string
+	srvmap     string
+	players    int
+	maxPlayers int
+	bots       int
+}
 
 var (
-	configFile = "./isr.cfg"
+	configFile    = "./isr.cfg"
+	messageIdFile = "./message.id"
+	playerList    = map[string]bool{
+		"Klaus": true,
+		"Peter": true,
+	}
 
 	hasRules = false
+	useBot   = false
 	ruleSet  []string
+
+	conf = struct {
+		Host             string `name:"host"`
+		QueryPort        int    `name:"queryport"`
+		RconPort         int    `name:"rconport"`
+		RconPassword     string `name:"rconpassword"`
+		TemplateWelcome  string `name:"templatewelcome"`
+		TemplateFarewell string `name:"templatefarewell"`
+		RuleFile         string `name:"rulefile"`
+		BotToken         string `name:"bottoken"`
+		ChannelId        string `name:"channelid"`
+
+		TellFirstRuleDelay int `name:"tellfirstruledelay"`
+		TellNextRulesDelay int `name:"tellnextrulesdelay"`
+	}{
+		Host:               "",
+		QueryPort:          27131,
+		RconPort:           27015,
+		RconPassword:       "",
+		TemplateWelcome:    "Welcome, @!",
+		TemplateFarewell:   "Player @ just left.",
+		RuleFile:           "rules.txt",
+		TellFirstRuleDelay: 30,
+		TellNextRulesDelay: 10,
+	}
+	serverInfo ServerInfo
 )
-
-var conf = struct {
-	Host             string `name:"host"`
-	QueryPort        int    `name:"queryport"`
-	RconPort         int    `name:"rconport"`
-	RconPassword     string `name:"rconpassword"`
-	TemplateWelcome  string `name:"templatewelcome"`
-	TemplateFarewell string `name:"templatefarewell"`
-	RuleFile         string `name:"rulefile"`
-
-	TellFirstRuleDelay int `name:"tellfirstruledelay"`
-	TellNextRulesDelay int `name:"tellnextrulesdelay"`
-}{
-	Host:               "",
-	QueryPort:          27131,
-	RconPort:           27015,
-	RconPassword:       "",
-	TemplateWelcome:    "Welcome, @!",
-	TemplateFarewell:   "Player @ just left.",
-	RuleFile:           "rules.txt",
-	TellFirstRuleDelay: 30,
-	TellNextRulesDelay: 10,
-}
 
 func main() {
 	startup()
-
-	var playerList = map[string]bool{}
 
 	playRules := struct {
 		doPlay    bool
@@ -91,6 +106,7 @@ func main() {
 			playerList[name] = true
 
 			rconSay(strings.Replace(conf.TemplateWelcome, "@", name, -1))
+			updateBotText()
 		}
 
 		// check for parted players
@@ -102,6 +118,7 @@ func main() {
 			delete(playerList, name)
 
 			rconSay(strings.Replace(conf.TemplateFarewell, "@", name, -1))
+			updateBotText()
 		}
 
 		if playRules.doPlay && time.Now().After(playRules.nextRule) {
@@ -168,6 +185,13 @@ func startup() {
 
 	loadConfig()
 	loadRules()
+
+	useBot = conf.BotToken != "" && conf.ChannelId != ""
+
+	if useBot {
+		BotInit(conf.BotToken, conf.ChannelId)
+		updateBotText()
+	}
 }
 
 func loadConfig() {
@@ -294,12 +318,40 @@ func printHeader() {
 `, title, strings.Repeat("~", len(title)))
 }
 
+func updateBotText() {
+	if !useBot {
+		return
+	}
+
+	players := make([]string, 0, len(playerList))
+	for k := range playerList {
+		players = append(players, k)
+	}
+	log.Println("- " + strings.Join(players, "\n- "))
+
+	BotSendMessage(fmt.Sprintf(
+		"Server: <b>%s</b>\n\nPlayers <b>%d</b> / %d:\n\n- <b>%s</b>\n\nBots: %d\nMap: <b>%s</b>\nLast update: %s",
+		serverInfo.name,
+		serverInfo.players,
+		serverInfo.maxPlayers,
+		strings.Join(players, "\n- "),
+		serverInfo.bots,
+		serverInfo.srvmap,
+		time.Now().Local().Format("2006-01-02 15:04:05")))
+}
+
 func readPlayers() (map[string]time.Duration, error) {
 	const (
 		MaxPacketSize = 1500
 	)
 
 	A2sPlayer := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0x55, 0xFF, 0xFF, 0xFF, 0xFF}
+	A2sInfo := []byte{
+		0xFF, 0xFF, 0xFF, 0xFF, 0x54,
+		0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69, 0x6E, 0x65, 0x20,
+		0x51, 0x75, 0x65, 0x72, 0x79, 0x00,
+		0xFF, 0xFF, 0xFF, 0xFF}
+
 	conn, err := net.DialTimeout("udp",
 		fmt.Sprintf("%s:%d", conf.Host, conf.QueryPort),
 		time.Duration(connectTimeout)*time.Second)
@@ -337,9 +389,6 @@ func readPlayers() (map[string]time.Duration, error) {
 	numplayers := int(unparsed[1])
 
 	players := map[string]time.Duration{}
-	if numplayers == 0 || numplayers > 30 {
-		return players, nil
-	}
 
 	startidx := 3
 	var b []byte
@@ -363,7 +412,46 @@ func readPlayers() (map[string]time.Duration, error) {
 		players[playerName] = onlineTime
 	}
 
+	_ = conn.SetDeadline(time.Now().Add(time.Duration(1) * time.Second))
+	_, _ = conn.Write(A2sInfo)
+	numread, err = conn.Read(buf[:MaxPacketSize])
+	if err != nil {
+		return players, nil
+	}
+
+	unparsed = make([]byte, numread)
+	copy(unparsed, buf[:numread])
+
+	idx := 6
+
+	serverInfo.name, idx = readCStringFromByteArray(unparsed, idx)
+	serverInfo.srvmap, idx = readCStringFromByteArray(unparsed, idx)
+	_, idx = readCStringFromByteArray(unparsed, idx) // folder
+	_, idx = readCStringFromByteArray(unparsed, idx) // game name
+	idx += 2
+
+	serverInfo.players = int(unparsed[idx])
+	idx++
+	serverInfo.maxPlayers = int(unparsed[idx])
+	idx++
+	serverInfo.bots = int(unparsed[idx])
+	idx++
+
 	return players, nil
+}
+
+func readCStringFromByteArray(buffer []byte, startIndex int) (string, int) {
+	if startIndex >= len(buffer) {
+		return "", -1
+	}
+
+	stringTerminator := bytes.IndexByte(buffer[startIndex:], 0x00)
+	if stringTerminator < 0 {
+		return "", -1
+	}
+
+	str := string(buffer[startIndex : startIndex+stringTerminator])
+	return str, stringTerminator + startIndex + 1
 }
 
 func nextTime(delay int) time.Time {
