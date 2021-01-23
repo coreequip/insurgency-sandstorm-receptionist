@@ -336,7 +336,7 @@ func updateBotText() {
 		time.Now().Local().Format("2006-01-02 15:04:05")))
 
 	if err != nil {
-		log.Println("ERROR sending message: ", err.Error())
+		log.Println("ERROR sending message:", err.Error())
 	}
 }
 

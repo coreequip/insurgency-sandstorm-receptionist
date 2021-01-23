@@ -82,6 +82,10 @@ func BotSendMessage(text string) error {
 		return err
 	}
 
+	if !msgResponse.Ok {
+		return fmt.Errorf("TelegramAPI-Error %d: %s", msgResponse.ErrorCode, msgResponse.Description)
+	}
+
 	if msgResponse.Ok && messageId != msgResponse.Result.MessageID {
 		messageId = msgResponse.Result.MessageID
 		saveMessageId()
