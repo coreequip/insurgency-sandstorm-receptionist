@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	requestUrlNew    = "https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&parse_mode=HTML"
-	requestUrlUpdate = "https://api.telegram.org/bot%s/editMessageText?chat_id=%s&text=%s&message_id=%d&parse_mode=HTML"
+	requestUrlNew    = "http://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&parse_mode=HTML"
+	requestUrlUpdate = "http://api.telegram.org/bot%s/editMessageText?chat_id=%s&text=%s&message_id=%d&parse_mode=HTML"
 )
 
 type APIResponse struct {
