@@ -32,10 +32,7 @@ type ServerInfo struct {
 var (
 	configFile    = "./isr.cfg"
 	messageIdFile = "./message.id"
-	playerList    = map[string]bool{
-		"Klaus": true,
-		"Peter": true,
-	}
+	playerList    = map[string]bool{}
 
 	hasRules = false
 	useBot   = false
@@ -327,9 +324,8 @@ func updateBotText() {
 	for k := range playerList {
 		players = append(players, k)
 	}
-	log.Println("- " + strings.Join(players, "\n- "))
 
-	BotSendMessage(fmt.Sprintf(
+	err := BotSendMessage(fmt.Sprintf(
 		"Server: <b>%s</b>\n\nPlayers <b>%d</b> / %d:\n\n- <b>%s</b>\n\nBots: %d\nMap: <b>%s</b>\nLast update: %s",
 		serverInfo.name,
 		serverInfo.players,
@@ -338,6 +334,10 @@ func updateBotText() {
 		serverInfo.bots,
 		serverInfo.srvmap,
 		time.Now().Local().Format("2006-01-02 15:04:05")))
+
+	if err != nil {
+		log.Println("ERROR sending message: ", err.Error())
+	}
 }
 
 func readPlayers() (map[string]time.Duration, error) {
