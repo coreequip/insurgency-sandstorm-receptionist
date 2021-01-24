@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -48,6 +49,7 @@ func BotInit(t string, c string) {
 	if err != nil {
 		messageId = 0
 	}
+
 }
 
 func saveMessageId() {
@@ -62,11 +64,13 @@ func saveMessageId() {
 
 func BotSendMessage(text string) error {
 	var reqUrl string
+
 	if messageId > 0 {
 		reqUrl = fmt.Sprintf(requestUrlUpdate, url.QueryEscape(token), channelId, url.QueryEscape(text), messageId)
 	} else {
 		reqUrl = fmt.Sprintf(requestUrlNew, url.QueryEscape(token), channelId, url.QueryEscape(text))
 	}
+	log.Printf("Calling with URL: %s\n", reqUrl)
 	resp, err := http.Get(reqUrl)
 	if err != nil {
 		return err
