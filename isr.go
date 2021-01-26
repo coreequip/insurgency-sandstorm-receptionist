@@ -188,6 +188,10 @@ func startup() {
 
 	if useBot {
 		BotInit(conf.BotToken, conf.ChannelId)
+		_, err := readPlayers()
+		if err != nil {
+			log.Println(err.Error())
+		}
 		updateBotText()
 	}
 }
