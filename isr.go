@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"html"
 	"log"
 	"math"
 	"net"
@@ -322,17 +323,16 @@ func updateBotText() {
 
 	players := make([]string, 0, len(playerList))
 	for k := range playerList {
-		players = append(players, k)
+		players = append(players, html.EscapeString(k))
 	}
 
 	err := BotSendMessage(fmt.Sprintf(
-		"Server: <b>%s</b>\n\nPlayers <b>%d</b> / %d:\n\n- <b>%s</b>\n\nBots: %d\nMap: <b>%s</b>\nLast update: %s",
-		serverInfo.name,
+		"Server: <b>%s</b>\n\nPlayers <b>%d</b> / %d:\n\n- <b>%s</b>\n\nMap: <b>%s</b>\nLast update: %s",
+		html.EscapeString(serverInfo.name),
 		serverInfo.players,
 		serverInfo.maxPlayers,
 		strings.Join(players, "\n- "),
-		serverInfo.bots,
-		serverInfo.srvmap,
+		html.EscapeString(serverInfo.srvmap),
 		time.Now().Local().Format("2006-01-02 15:04:05")))
 
 	if err != nil {
