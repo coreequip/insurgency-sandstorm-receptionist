@@ -19,7 +19,7 @@ import (
 
 const (
 	connectTimeout = 3
-	version        = "0.2.1"
+	version        = "0.2.2"
 )
 
 type ServerInfo struct {
